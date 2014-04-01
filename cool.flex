@@ -49,10 +49,14 @@ extern YYSTYPE cool_yylval;
  * Define names for regular expressions here.
  */
 
+%x COMMENT
+%x STRING
+%x MULTI_COMMENT
+
 DARROW          =>
 CLASS			?i:class
 ELSE			?i:else
-false			f[aA][lL][sS][eE]
+FALSE			f[aA][lL][sS][eE]
 FI				?i:fi
 IF				?i:if
 IN				?i:in
@@ -68,7 +72,7 @@ ESAC      		?i:esac
 NEW       		?i:new
 OF        		?i:of
 NOT       		?i:not
-true			t[rR][uU][eE]
+TRUE			t[rR][uU][eE]
 STR_CONST 		aaaa
 INT_CONST 		aaa
 BOOL_CONST		aaa
@@ -79,11 +83,20 @@ LE        		aaa
 ERROR     		aaa
 LET_STMT  		aaa
 
+WHITE_SPACE 	[\t\f\r\v]+
+NEW_LINE		[\n]
+
 %%
 
  /*
   *  Nested comments
   */
+
+"--"				BEGIN(COMMENT);
+<COMMENT>[^\n]*\n	{
+						curr_lineno++;
+						BEGIN(INITIAL);
+					}
 
  /*
   *  The multiple-character operators.
@@ -115,6 +128,17 @@ LET_STMT  		aaa
 {LE}        	{ return (LE);}
 {ERROR}     	{ return (ERROR);}
 {LET_STMT}  	{ return (LET_STMT);}
+{FALSE}			{ 
+				  cool_yylval.boolean = false;
+				  return (BOOL_CONST);
+				}
+{TRUE}			{ 
+				  cool_yylval.boolean = true;
+				  return (BOOL_CONST);
+				}
+
+{WHITE_SPACE}	{}
+{NEW_LINE}		{curr_lineno++;}
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
