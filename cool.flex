@@ -50,23 +50,71 @@ extern YYSTYPE cool_yylval;
  */
 
 DARROW          =>
-CLASS class
+CLASS			?i:class
+ELSE			?i:else
+false			f[aA][lL][sS][eE]
+FI				?i:fi
+IF				?i:if
+IN				?i:in
+INHERITS		?i:inherits
+ISVOID    		?i:isvoid
+LET       		?i:let
+LOOP      		?i:loop
+POOL      		?i:pool
+THEN      		?i:then
+WHILE     		?i:while
+CASE      		?i:case
+ESAC      		?i:esac
+NEW       		?i:new
+OF        		?i:of
+NOT       		?i:not
+true			t[rR][uU][eE]
+STR_CONST 		aaaa
+INT_CONST 		aaa
+BOOL_CONST		aaa
+TYPEID    		aaa
+OBJECTID  		aaa
+ASSIGN    		aaa
+LE        		aaa
+ERROR     		aaa
+LET_STMT  		aaa
 
 %%
 
  /*
   *  Nested comments
   */
-t {
-	printf("blah");
-}
 
  /*
   *  The multiple-character operators.
   */
 {DARROW}		{ return (DARROW); }
 {CLASS}			{ return (CLASS);}
-
+{ELSE}			{ return (ELSE);}
+{FI}	    	{ return (FI);}
+{IF}        	{ return (IF);}
+{IN}        	{ return (IN);}
+{INHERITS}  	{ return (INHERITS);}
+{LET}       	{ return (LET);}
+{LOOP}      	{ return (LOOP);}
+{POOL}      	{ return (POOL);}
+{THEN}      	{ return (THEN);}
+{WHILE}     	{ return (WHILE);}
+{CASE}      	{ return (CASE);}
+{ESAC}      	{ return (ESAC);}
+{OF}        	{ return (OF);}
+{NEW}       	{ return (NEW);}
+{ISVOID}    	{ return (ISVOID);}
+{STR_CONST} 	{ return (STR_CONST);}
+{INT_CONST} 	{ return (INT_CONST);}
+{BOOL_CONST}	{ return (BOOL_CONST);} 
+{TYPEID}    	{ return (TYPEID);}
+{OBJECTID}  	{ return (OBJECTID);}
+{ASSIGN}    	{ return (ASSIGN);}
+{NOT}       	{ return (NOT);}
+{LE}        	{ return (LE);}
+{ERROR}     	{ return (ERROR);}
+{LET_STMT}  	{ return (LET_STMT);}
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.

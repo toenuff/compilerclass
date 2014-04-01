@@ -1,5 +1,7 @@
-t
-notblahl
-this => that
-t
+=>
+class blah {
+
+}
+CLaSS blah {
+}
 
