@@ -119,9 +119,11 @@ void add_to_string (char *text) {
 <STRING>\\n		{ add_to_string("\n");}
 <STRING>\n		{ 
 					curr_lineno++; 
-					yylval.error_msg = "Unterminated string constant";
 					BEGIN(INITIAL);
-					return(ERROR);
+					if (! inbadstring) {
+						yylval.error_msg = "Unterminated string constant";
+						return(ERROR);
+					}
 				}
 <STRING><<EOF>>	{ yylval.error_msg = "EOF in string constant"; BEGIN(INITIAL);return(ERROR);}
 <STRING>\0		{
