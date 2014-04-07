@@ -32,7 +32,6 @@ extern FILE *fin; /* we read from this file */
 		YY_FATAL_ERROR( "read() in flex scanner failed");
 
 char string_buf[MAX_STR_CONST]; /* to assemble string constants */
-char *string_buf_ptr;
 
 extern int curr_lineno;
 extern int verbose_flag;
@@ -53,6 +52,9 @@ void add_to_string (char *text) {
 	if (! inbadstring) {
 		if (stringsize > MAX_STR_CONST) {
 			inbadstring = 1;
+		}
+		else {
+			strcat(string_buf, text);
 		}
 	}
 }
@@ -78,6 +80,8 @@ void add_to_string (char *text) {
 						curr_lineno++;
 						BEGIN(INITIAL);
 					}
+<COMMENT>[^\n]*
+<COMMENT><<EOF>>	BEGIN(INITIAL);
 
 "\(\*"				{ commentlevel++; BEGIN(MLCOMMENT);}
 <MLCOMMENT>\(\*		{ commentlevel++; }
@@ -86,6 +90,50 @@ void add_to_string (char *text) {
 <MLCOMMENT><<EOF>>	{ yylval.error_msg = "EOF in comment"; BEGIN(INITIAL); return (ERROR);}
 <MLCOMMENT>.		
 "\*\)"				{ yylval.error_msg = "Unmatched *"; return (ERROR); }
+
+ /*
+  *  String constants (C syntax)
+  *  Escape sequence \c is accepted for all characters c. Except for 
+  *  \n \t \b \f, the result is c.
+  *
+  */
+
+\" { 
+	stringsize = 0;
+	inbadstring = 0;
+	string_buf[0] = '\0';
+	BEGIN(STRING);
+}
+<STRING>\"		{
+					BEGIN(INITIAL);
+					if (stringsize > MAX_STR_CONST) {
+						yylval.error_msg = "String constant too long";
+						return(ERROR);
+					}					
+					else  {
+						yylval.symbol = inttable.add_string(string_buf);
+						return(STR_CONST);
+					}
+				}
+<STRING>\\\n	{ add_to_string("\n");}
+<STRING>\\n		{ add_to_string("\n");}
+<STRING>\n		{ 
+					curr_lineno++; 
+					yylval.error_msg = "Unterminated string constant";
+					BEGIN(INITIAL);
+					return(ERROR);
+				}
+<STRING><<EOF>>	{ yylval.error_msg = "EOF in string constant"; BEGIN(INITIAL);return(ERROR);}
+<STRING>\0		{ 
+					yylval.error_msg = "String contains null character"; 
+					inbadstring = 1;
+					return(ERROR);
+				}
+<STRING>\\t		{ add_to_string("\t");}
+<STRING>\\b		{ add_to_string("\b");}
+<STRING>\\f		{ add_to_string("\f");}
+<STRING>\\.		{ yytext++;add_to_string(yytext);}
+<STRING>.		{ add_to_string(yytext); }
 
  /*
   *  The multiple-character operators.
@@ -148,48 +196,6 @@ t[rR][uU][eE]		{
 					  yylval.symbol = inttable.add_string(yytext);
 					  return (OBJECTID);
 					}
- /*
-  *  String constants (C syntax)
-  *  Escape sequence \c is accepted for all characters c. Except for 
-  *  \n \t \b \f, the result is c.
-  *
-  */
-
-\" { 
-	string_buf_ptr = string_buf;
-	stringsize = 0;
-	inbadstring = 0;
-	BEGIN(STRING);
-}
-<STRING>\"		{
-					BEGIN(INITIAL);
-					if (stringsize > MAX_STR_CONST) {
-						yylval.error_msg = "String constant too long";
-						return(ERROR);
-					}
-					else {
-						yylval.symbol = inttable.add_string(string_buf);
-						return(STR_CONST);
-					}
-				}
-<STRING>\\\n	{ add_to_string("\n");}
-<STRING>\\n		{ add_to_string("\n");}
-<STRING>\n		{ 
-					curr_lineno++; 
-					yylval.error_msg = "Unterminated string constant";
-					inbadstring = 1;
-					return(ERROR);
-				}
-<STRING><<EOF>>	{ yylval.error_msg = "EOF in string constant"; BEGIN(INITIAL);return(ERROR);}
-<STRING>\\0		{ 
-					yylval.error_msg = "String contains null character"; 
-					inbadstring = 1;
-					return(ERROR);
-				}
-<STRING>\\t		{ add_to_string("\t");}
-<STRING>\\b		{ add_to_string("\b");}
-<STRING>\\f		{ add_to_string("\f");}
-<STRING>.		{ add_to_string(yytext); }
 
 
 

@@ -1,0 +1,8 @@
+#name "./backslash2.cool"
+#2 ERROR "Unterminated string constant"
+#2 STR_CONST "I'm not going to escape this newline"
+#5 ERROR "Unterminated string constant"
+#5 STR_CONST "This is also not escaped \\"
+#7 STR_CONST "This is, though \\\n"
+#9 STR_CONST "\\"
+#11 STR_CONST "It's fine to have this: \n in a string"
