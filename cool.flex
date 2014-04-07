@@ -124,9 +124,9 @@ void add_to_string (char *text) {
 					return(ERROR);
 				}
 <STRING><<EOF>>	{ yylval.error_msg = "EOF in string constant"; BEGIN(INITIAL);return(ERROR);}
-<STRING>\0		{ 
-					yylval.error_msg = "String contains null character"; 
-					inbadstring = 1;
+<STRING>\\?\0.*\n		{ 
+					yylval.error_msg = "String contains escaped null character."; 
+					BEGIN(INITIAL);
 					return(ERROR);
 				}
 <STRING>\\t		{ add_to_string("\t");}
