@@ -110,7 +110,7 @@ void add_to_string (char *text) {
 						yylval.error_msg = "String constant too long";
 						return(ERROR);
 					}					
-					else  {
+					else if (! inbadstring) {
 						yylval.symbol = inttable.add_string(string_buf);
 						return(STR_CONST);
 					}
@@ -124,9 +124,15 @@ void add_to_string (char *text) {
 					return(ERROR);
 				}
 <STRING><<EOF>>	{ yylval.error_msg = "EOF in string constant"; BEGIN(INITIAL);return(ERROR);}
-<STRING>\\?\0.*\n		{ 
+<STRING>\0		{
+					inbadstring=1;
+					yylval.error_msg = "String contains null character.";
+					return(ERROR);
+
+				}
+<STRING>\\\0	{ 
+					inbadstring=1;
 					yylval.error_msg = "String contains escaped null character."; 
-					BEGIN(INITIAL);
 					return(ERROR);
 				}
 <STRING>\\t		{ add_to_string("\t");}
