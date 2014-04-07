@@ -39,9 +39,23 @@ extern int verbose_flag;
 
 extern YYSTYPE cool_yylval;
 
+
 /*
  *  Add Your own definitions here
  */
+
+int commentlevel = 0;
+int stringsize = 0;
+int inbadstring = 0;
+
+void add_to_string (char *text) {
+	stringsize += strlen(text);
+	if (! inbadstring) {
+		if (stringsize > MAX_STR_CONST) {
+			inbadstring = 1;
+		}
+	}
+}
 
 %}
 
@@ -51,40 +65,7 @@ extern YYSTYPE cool_yylval;
 
 %x COMMENT
 %x STRING
-%x MULTI_COMMENT
-
-DARROW          =>
-CLASS			?i:class
-ELSE			?i:else
-FALSE			f[aA][lL][sS][eE]
-FI				?i:fi
-IF				?i:if
-IN				?i:in
-INHERITS		?i:inherits
-ISVOID    		?i:isvoid
-LET       		?i:let
-LOOP      		?i:loop
-POOL      		?i:pool
-THEN      		?i:then
-WHILE     		?i:while
-CASE      		?i:case
-ESAC      		?i:esac
-NEW       		?i:new
-OF        		?i:of
-NOT       		?i:not
-TRUE			t[rR][uU][eE]
-STR_CONST 		aaaa
-INT_CONST 		aaa
-BOOL_CONST		aaa
-TYPEID    		aaa
-OBJECTID  		aaa
-ASSIGN    		aaa
-LE        		aaa
-ERROR     		aaa
-LET_STMT  		aaa
-
-WHITE_SPACE 	[\t\f\r\v]+
-NEW_LINE		[\n]
+%x MLCOMMENT
 
 %%
 
@@ -98,53 +79,75 @@ NEW_LINE		[\n]
 						BEGIN(INITIAL);
 					}
 
+"\(\*"				{ commentlevel++; BEGIN(MLCOMMENT);}
+<MLCOMMENT>\(\*		{ commentlevel++; }
+<MLCOMMENT>\n		{ curr_lineno++; }
+<MLCOMMENT>\*\)		{ commentlevel--;  if (commentlevel == 0) BEGIN(INITIAL); }
+<MLCOMMENT><<EOF>>	{ yylval.error_msg = "EOF in comment"; BEGIN(INITIAL); return (ERROR);}
+<MLCOMMENT>.		
+"\*\)"				{ yylval.error_msg = "Unmatched *"; return (ERROR); }
+
  /*
   *  The multiple-character operators.
   */
-{DARROW}		{ return (DARROW); }
-{CLASS}			{ return (CLASS);}
-{ELSE}			{ return (ELSE);}
-{FI}	    	{ return (FI);}
-{IF}        	{ return (IF);}
-{IN}        	{ return (IN);}
-{INHERITS}  	{ return (INHERITS);}
-{LET}       	{ return (LET);}
-{LOOP}      	{ return (LOOP);}
-{POOL}      	{ return (POOL);}
-{THEN}      	{ return (THEN);}
-{WHILE}     	{ return (WHILE);}
-{CASE}      	{ return (CASE);}
-{ESAC}      	{ return (ESAC);}
-{OF}        	{ return (OF);}
-{NEW}       	{ return (NEW);}
-{ISVOID}    	{ return (ISVOID);}
-{STR_CONST} 	{ return (STR_CONST);}
-{INT_CONST} 	{ return (INT_CONST);}
-{BOOL_CONST}	{ return (BOOL_CONST);} 
-{TYPEID}    	{ return (TYPEID);}
-{OBJECTID}  	{ return (OBJECTID);}
-{ASSIGN}    	{ return (ASSIGN);}
-{NOT}       	{ return (NOT);}
-{LE}        	{ return (LE);}
-{ERROR}     	{ return (ERROR);}
-{LET_STMT}  	{ return (LET_STMT);}
-{FALSE}			{ 
-				  cool_yylval.boolean = false;
-				  return (BOOL_CONST);
-				}
-{TRUE}			{ 
-				  cool_yylval.boolean = true;
-				  return (BOOL_CONST);
-				}
+=>		{ return (DARROW); }
+"<-"	{ return (ASSIGN); }
+"<="	{ return (LE);}
 
-{WHITE_SPACE}	{}
-{NEW_LINE}		{curr_lineno++;}
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
 
+(?i:class)			{ return (CLASS);}
+(?i:else)			{ return (ELSE);}
+(?i:fi)	    		{ return (FI);}
+(?i:if)        		{ return (IF);}
+(?i:in)        		{ return (IN);}
+(?i:inherits)  		{ return (INHERITS);}
+(?i:let)      		{ return (LET);}
+(?i:loop)      		{ return (LOOP);}
+(?i:pool)      		{ return (POOL);}
+(?i:then)      		{ return (THEN);}
+(?i:while)     		{ return (WHILE);}
+(?i:case)      		{ return (CASE);}
+(?i:esac)      		{ return (ESAC);}
+(?i:of)        		{ return (OF);}
+(?i:new)       		{ return (NEW);}
+(?i:isvoid)   		{ return (ISVOID);}
+(?i:not)       		{ return (NOT);}
 
+
+[0-9]+				{ 
+					  yylval.symbol = inttable.add_string(yytext);
+					  return (INT_CONST);
+					}
+
+f[aA][lL][sS][eE]	{ 
+					  yylval.boolean = false;
+					  return (BOOL_CONST);
+					}
+
+t[rR][uU][eE]		{ 
+					  yylval.boolean = true;
+					  return (BOOL_CONST);
+					}
+
+[:@,;\(\)\{\}=<~/\-\*\+\.] { return *(yytext); }
+
+[\t\f\r\v ]+ {}
+
+\n					{curr_lineno++;}
+
+[A-Z][A-Za-z_0-9]*	{
+					  yylval.symbol = inttable.add_string(yytext);
+					  return (TYPEID);
+					}
+
+[a-z][A-Za-z_0-9]*	{
+					  yylval.symbol = inttable.add_string(yytext);
+					  return (OBJECTID);
+					}
  /*
   *  String constants (C syntax)
   *  Escape sequence \c is accepted for all characters c. Except for 
@@ -152,5 +155,51 @@ NEW_LINE		[\n]
   *
   */
 
+\" { 
+	string_buf_ptr = string_buf;
+	stringsize = 0;
+	inbadstring = 0;
+	BEGIN(STRING);
+}
+<STRING>\"		{
+					BEGIN(INITIAL);
+					if (stringsize > MAX_STR_CONST) {
+						yylval.error_msg = "String constant too long";
+						return(ERROR);
+					}
+					else {
+						yylval.symbol = inttable.add_string(string_buf);
+						return(STR_CONST);
+					}
+				}
+<STRING>\\\n	{ add_to_string("\n");}
+<STRING>\\n		{ add_to_string("\n");}
+<STRING>\n		{ 
+					curr_lineno++; 
+					yylval.error_msg = "Unterminated string constant";
+					inbadstring = 1;
+					return(ERROR);
+				}
+<STRING><<EOF>>	{ yylval.error_msg = "EOF in string constant"; BEGIN(INITIAL);return(ERROR);}
+<STRING>\\0		{ 
+					yylval.error_msg = "String contains null character"; 
+					inbadstring = 1;
+					return(ERROR);
+				}
+<STRING>\\t		{ add_to_string("\t");}
+<STRING>\\b		{ add_to_string("\b");}
+<STRING>\\f		{ add_to_string("\f");}
+<STRING>.		{ add_to_string(yytext); }
+
+
+
+.	{
+		yylval.error_msg = yytext;
+		return (ERROR);
+	}
+
+  
+
 
 %%
+
