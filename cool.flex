@@ -50,7 +50,7 @@ int inbadstring = 0;
 void add_to_string (char *text) {
 	stringsize += strlen(text);
 	if (! inbadstring) {
-		if (stringsize > MAX_STR_CONST) {
+		if (stringsize >= MAX_STR_CONST) {
 			inbadstring = 1;
 		}
 		else {
@@ -106,7 +106,7 @@ void add_to_string (char *text) {
 }
 <STRING>\"		{
 					BEGIN(INITIAL);
-					if (stringsize > MAX_STR_CONST) {
+					if (stringsize >= MAX_STR_CONST) {
 						yylval.error_msg = "String constant too long";
 						return(ERROR);
 					}					
